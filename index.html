@@ -1074,6 +1074,7 @@ function renderTable() {
         <div class="flex gap-sm">
           <button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem" onclick="viewEntry(${i})">👁 View</button>
           <button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem;background:#fffbeb;border-color:#fcd34d" onclick="editEntry(${i})">✏️ Edit</button>
+          ${e.status==='pending' ? `<button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem;background:#eff6ff;border-color:#93c5fd;color:#1d4ed8" onclick="sendNow(${i})">📤 Send Now</button>` : ''}
           ${e.status==='pending' ? `<button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem" onclick="markDone(${i})">✓ Done</button>` : ''}
           <button class="btn btn-danger" style="padding:4px 8px;font-size:0.68rem" onclick="deleteEntry(${i})">✕</button>
         </div>
@@ -1296,6 +1297,27 @@ async function saveEdit() {
   }
 }
 
+// ── SEND NOW ───────────────────────────────────────────────────
+async function sendNow(i) {
+  const e = entries[i];
+  if (!confirm(`Send email to ${e.name} (${e.email}) right now?`)) return;
+  if (!WEB_APP_URL) { showToast('⚠️ Connect your Sheet URL first'); return; }
+
+  showToast('📤 Sending email...');
+
+  const result = await postToSheet({
+    action: 'sendNow',
+    rowIndex: e.rowIndex
+  });
+
+  if (result && result.success) {
+    await loadFromSheet();
+    showToast('✅ Email sent to ' + e.name + '!');
+  } else {
+    showToast('❌ Failed to send: ' + (result?.error || 'unknown error'));
+  }
+}
+
 // ── LOAD FROM SHEET ────────────────────────────────────────────
 async function loadFromSheet() {
   const urlInput = document.getElementById('sheetUrl').value.trim();
@@ -1379,6 +1401,7 @@ function renderTable() {
         <div class="flex gap-sm">
           <button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem" onclick="viewEntry(${i})">👁 View</button>
           <button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem;background:#fffbeb;border-color:#fcd34d" onclick="editEntry(${i})">✏️ Edit</button>
+          ${e.status==='pending' ? `<button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem;background:#eff6ff;border-color:#93c5fd;color:#1d4ed8" onclick="sendNow(${i})">📤 Send Now</button>` : ''}
           ${e.status==='pending' ? `<button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem" onclick="markDone(${i})">✓ Done</button>` : ''}
           <button class="btn btn-danger" style="padding:4px 8px;font-size:0.68rem" onclick="deleteEntry(${i})">✕</button>
         </div>
