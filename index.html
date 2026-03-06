@@ -574,7 +574,7 @@
 <span class="kw">const</span> CONFIG = {
   SHEET_NAME:    <span class="str">"FollowUps"</span>,        <span class="cmt">// Your sheet tab name</span>
   SENDER_NAME:   <span class="str">"Your Company Name"</span>, <span class="cmt">// Shown as sender</span>
-  REPLY_TO:      <span class="str">"you@email.com"</span>,    <span class="cmt">// Reply-to address</span>
+  REPLY_TO:      <span class="str">"<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="51283e2411343c30383d7f323e3c">[email&#160;protected]</a>"</span>,    <span class="cmt">// Reply-to address</span>
 };
 
 <span class="cmt">// ── COLUMN MAPPING (1-indexed) ─────────────────────────────────</span>
@@ -845,7 +845,7 @@
         <table style="width:100%">
           <tr><th>Col</th><th>Name</th><th>Example</th></tr>
           <tr><td>A</td><td>Name</td><td style="font-size:0.72rem;color:var(--muted)">John Smith</td></tr>
-          <tr><td>B</td><td>Email</td><td style="font-size:0.72rem;color:var(--muted)">john@co.com</td></tr>
+          <tr><td>B</td><td>Email</td><td style="font-size:0.72rem;color:var(--muted)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a9c3c6c1c7e9cac687cac6c4">[email&#160;protected]</a></td></tr>
           <tr><td>C</td><td>Subject</td><td style="font-size:0.72rem;color:var(--muted)">Invoice #123</td></tr>
           <tr><td>D</td><td>Message</td><td style="font-size:0.72rem;color:var(--muted)">Please find...</td></tr>
           <tr><td>E</td><td>Due Date</td><td style="font-size:0.72rem;color:var(--muted)">2024-03-15</td></tr>
@@ -903,7 +903,14 @@
         <label>Follow-Up Schedule *</label>
         <select id="fSchedule">
           <option value="daily">Daily</option>
-          <option value="weekly" selected>Weekly</option>
+          <option value="monday">Every Monday</option>
+          <option value="tuesday">Every Tuesday</option>
+          <option value="wednesday">Every Wednesday</option>
+          <option value="thursday">Every Thursday</option>
+          <option value="friday">Every Friday</option>
+          <option value="saturday">Every Saturday</option>
+          <option value="sunday">Every Sunday</option>
+          <option value="weekly" selected>Weekly (any day)</option>
           <option value="monthly">Monthly</option>
         </select>
       </div>
@@ -941,6 +948,213 @@
 <div id="toast"></div>
 
 <script>
+// ── WEB APP URL (saved in localStorage) ────────────────────────
+let WEB_APP_URL = localStorage.getItem('webAppUrl') || '';
+let entries = [];
+
+// On load, restore saved URL and load data
+window.addEventListener('DOMContentLoaded', () => {
+  if (WEB_APP_URL) {
+    document.getElementById('sheetUrl').value = WEB_APP_URL;
+    loadFromSheet();
+  } else {
+    renderTable();
+  }
+});
+
+// ── POST to sheet ───────────────────────────────────────────────
+async function postToSheet(payload) {
+  if (!WEB_APP_URL) { showToast('⚠️ Connect your Sheet URL first'); return null; }
+  try {
+    const res = await fetch(WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch(e) {
+    showToast('❌ Could not reach Sheet. Check your Web App URL.');
+    return null;
+  }
+}
+
+// ── RENDER TABLE ───────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  updateStats();
+
+  if (!entries.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>No entries yet. Connect your Sheet URL then click <strong>+ Add New</strong>.</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = entries.map((e, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:0.72rem">${i+1}</td>
+      <td><strong>${e.name}</strong></td>
+      <td style="color:var(--accent2)">${e.email}</td>
+      <td style="font-size:0.78rem">${e.date || '—'}</td>
+      <td><span class="badge badge-${e.schedule}">${e.schedule}</span></td>
+      <td>${e.fileId ? `<span class="attach-chip">📎 ${e.fileId.slice(0,14)}...</span>` : '<span style="color:var(--muted);font-size:0.72rem">—</span>'}</td>
+      <td><span class="badge badge-${e.status}">${e.status}</span></td>
+      <td>
+        <div class="flex gap-sm">
+          ${e.status==='pending' ? `<button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem" onclick="markDone(${i})">✓ Done</button>` : ''}
+          <button class="btn btn-danger" style="padding:4px 8px;font-size:0.68rem" onclick="deleteEntry(${i})">✕</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateStats() {
+  const pending = entries.filter(e => e.status === 'pending').length;
+  document.getElementById('statTotal').textContent = entries.length;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statDone').textContent = entries.length - pending;
+}
+
+// ── MODAL ──────────────────────────────────────────────────────
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+function handleFile(input) {
+  const name = input.files[0]?.name || '';
+  document.getElementById('fileName').textContent = name ? `📎 ${name}` : '';
+}
+
+// ── ADD ENTRY → sends to Google Sheet ─────────────────────────
+async function addEntry() {
+  const name     = document.getElementById('fName').value.trim();
+  const email    = document.getElementById('fEmail').value.trim();
+  const subject  = document.getElementById('fSubject').value.trim();
+  const message  = document.getElementById('fMessage').value.trim();
+  const date     = document.getElementById('fDate').value;
+  const schedule = document.getElementById('fSchedule').value;
+  const status   = document.getElementById('fStatus').value;
+  const fileId   = document.getElementById('fFileId').value.trim();
+
+  if (!name || !email || !subject) { showToast('⚠️ Name, Email and Subject are required'); return; }
+  if (!WEB_APP_URL) { showToast('⚠️ Connect your Sheet URL first (right sidebar)'); return; }
+
+  showToast('⟳ Adding to Google Sheet...');
+
+  const result = await postToSheet({
+    action: 'add',
+    data: { name, email, subject, message, date, schedule, fileId, status }
+  });
+
+  if (result && result.success) {
+    closeModal();
+    clearForm();
+    await loadFromSheet();
+    showToast('✅ Added to Google Sheet!');
+  } else {
+    showToast('❌ Failed to add. Check your Web App URL and permissions.');
+  }
+}
+
+function clearForm() {
+  ['fName','fEmail','fSubject','fMessage','fDate','fFileId'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fSchedule').value = 'weekly';
+  document.getElementById('fStatus').value = 'pending';
+  document.getElementById('fileName').textContent = '';
+  document.getElementById('fFile').value = '';
+}
+
+// ── MARK DONE → updates Google Sheet ──────────────────────────
+async function markDone(i) {
+  if (!confirm(`Mark ${entries[i].name} as Done?`)) return;
+  showToast('⟳ Updating Sheet...');
+
+  const result = await postToSheet({
+    action: 'markDone',
+    rowIndex: entries[i].rowIndex
+  });
+
+  if (result && result.success) {
+    await loadFromSheet();
+    showToast('✅ Marked as Done in Google Sheet!');
+  } else {
+    showToast('❌ Failed to update. Try refreshing.');
+  }
+}
+
+// ── DELETE → removes from Google Sheet ────────────────────────
+async function deleteEntry(i) {
+  if (!confirm(`Delete entry for ${entries[i].name}? This removes it from Google Sheet permanently.`)) return;
+  showToast('⟳ Deleting from Sheet...');
+
+  const result = await postToSheet({
+    action: 'delete',
+    rowIndex: entries[i].rowIndex
+  });
+
+  if (result && result.success) {
+    await loadFromSheet();
+    showToast('🗑️ Deleted from Google Sheet!');
+  } else {
+    showToast('❌ Failed to delete. Try refreshing.');
+  }
+}
+
+// ── LOAD FROM SHEET ────────────────────────────────────────────
+async function loadFromSheet() {
+  const urlInput = document.getElementById('sheetUrl').value.trim();
+  if (!urlInput) { showToast('⚠️ Enter your Web App URL first'); return; }
+
+  WEB_APP_URL = urlInput;
+  localStorage.setItem('webAppUrl', WEB_APP_URL);
+
+  showToast('⟳ Loading from Google Sheet...');
+  try {
+    const res  = await fetch(WEB_APP_URL + '?action=get');
+    const data = await res.json();
+    if (data.rows) {
+      entries = data.rows;
+      renderTable();
+      showToast(`✅ Loaded ${entries.length} entries from Sheet`);
+    } else {
+      showToast('⚠️ Sheet returned no data');
+    }
+  } catch(e) {
+    showToast('❌ Could not connect. Check URL and make sure Web App is deployed as "Anyone".');
+  }
+}
+
+// ── SCRIPT COPY ───────────────────────────────────────────────
+function copyScript() {
+  navigator.clipboard.writeText(document.getElementById('scriptContent').innerText)
+    .then(() => showToast('📋 Script copied! Paste into Google Apps Script.'));
+}
+
+// ── TABS ───────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.getElementById('tab-main').style.display  = tab==='main'  ? '' : 'none';
+  document.getElementById('tab-setup').style.display = tab==='setup' ? '' : 'none';
+  document.querySelectorAll('.script-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── TOAST ──────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────────
+const drop = document.getElementById('fileDrop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) document.getElementById('fileName').textContent = `📎 ${file.name}`;
+});
+</script><script>
 // ── DATA STORE ─────────────────────────────────────────────────
 let entries = JSON.parse(localStorage.getItem('followup_entries') || '[]');
 
@@ -1169,12 +1383,4 @@ drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add(
 drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
 drop.addEventListener('drop', e => {
   e.preventDefault(); drop.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) document.getElementById('fileName').textContent = `📎 ${file.name}`;
-});
-
-// ── INIT ───────────────────────────────────────────────────────
-renderTable();
-</script>
-</body>
-</html>
+  const file
