@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FollowUp Pro — Automated Email Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0a0f;
+    --paper: #f5f3ee;
+    --accent: #e8461e;
+    --accent2: #2563ff;
+    --muted: #8a8880;
+    --surface: #ffffff;
+    --border: #e2dfd8;
+    --success: #16a34a;
+    --warn: #d97706;
+    --pending: #dc2626;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--accent);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--accent); }
+
+  .header-meta {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── HERO STRIP ── */
+  .hero {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 3.5rem 2.5rem 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: 'FOLLOWUP';
+    position: absolute;
+    right: -1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Syne', sans-serif;
+    font-size: 10rem;
+    font-weight: 800;
+    opacity: 0.05;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    max-width: 600px;
+  }
+  .hero h1 em { color: var(--accent); font-style: normal; }
+  .hero p {
+    margin-top: 1rem;
+    color: #aaa;
+    font-size: 0.85rem;
+    max-width: 480px;
+    line-height: 1.7;
+  }
+
+  .status-bar {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 0.8rem 1.4rem;
+    min-width: 110px;
+  }
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-label { font-size: 0.68rem; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
+  }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    header { padding: 0 1.2rem; }
+    .hero { padding: 2rem 1.2rem; }
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .card-body { padding: 1.5rem; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  th {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0.7rem 1rem;
+    text-align: left;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #faf9f7; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .badge-pending { background: #fee2e2; color: var(--pending); }
+  .badge-done    { background: #dcfce7; color: var(--success); }
+  .badge-daily   { background: #dbeafe; color: var(--accent2); }
+  .badge-weekly  { background: #fef3c7; color: var(--warn); }
+  .badge-monthly { background: #f3e8ff; color: #7c3aed; }
+
+  .attach-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    color: #475569;
+    white-space: nowrap;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #c93a17; }
+  .btn-dark { background: var(--ink); color: var(--paper); }
+  .btn-dark:hover { background: #1a1a2e; }
+  .btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--border); }
+  .btn-outline:hover { background: var(--paper); }
+  .btn-danger { background: #fee2e2; color: var(--pending); }
+  .btn-danger:hover { background: #fecaca; }
+
+  /* ── ADD FORM ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .form-full { grid-column: 1 / -1; }
+
+  label {
+    display: block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink);
+    background: var(--paper);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent2);
+    background: white;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .file-drop {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--paper);
+    position: relative;
+  }
+  .file-drop:hover, .file-drop.drag-over {
+    border-color: var(--accent2);
+    background: #eff6ff;
+  }
+  .file-drop input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .file-drop-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .file-drop-label strong { color: var(--accent2); }
+  .file-name {
+    margin-top: 0.6rem;
+    font-size: 0.72rem;
+    color: var(--success);
+    font-weight: 500;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .config-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+  }
+  .config-row:last-child { border-bottom: none; }
+  .config-label { font-size: 0.78rem; }
+  .config-sub { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+  .toggle {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    inset: 0;
+    background: #d1d5db;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .slider::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked + .slider { background: var(--success); }
+  .toggle input:checked + .slider::before { transform: translateX(18px); }
+
+  .steps {
+    counter-reset: step;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .step {
+    display: flex;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-txt { font-size: 0.78rem; line-height: 1.6; }
+  .step-txt strong { display: block; margin-bottom: 2px; font-size: 0.8rem; }
+  .step-txt code {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.72rem;
+    color: var(--accent);
+  }
+
+  /* ── SCRIPT BOX ── */
+  .script-box {
+    background: var(--ink);
+    color: #a8e6cf;
+    border-radius: 10px;
+    padding: 1.2rem;
+    font-size: 0.68rem;
+    line-height: 1.8;
+    overflow-x: auto;
+    white-space: pre;
+    font-family: 'DM Mono', monospace;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .kw { color: #89b4fa; }
+  .str { color: #a6e3a1; }
+  .cmt { color: #6c7086; }
+  .fn { color: #f9e2af; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0.9rem 1.4rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 9999;
+    border-left: 4px solid var(--accent);
+    max-width: 320px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,15,0.7);
+    z-index: 200;
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 560px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── UTIL ── */
+  .flex { display: flex; align-items: center; gap: 0.6rem; }
+  .gap-sm { gap: 0.4rem; }
+  .mt { margin-top: 1rem; }
+  .text-sm { font-size: 0.78rem; color: var(--muted); }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-state p { font-size: 0.85rem; }
+
+  .script-tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .script-tab {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+  }
+  .script-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Follow<span>Up</span> Pro</div>
+  <div class="header-meta">Automated Email Follow-Up System</div>
+</header>
+
+<div class="hero">
+  <h1>Never Miss a<br><em>Follow-Up</em> Again</h1>
+  <p>Add entries to your Google Sheet. The system auto-sends emails with attachments when status is <strong style="color:#f87171">Pending</strong> — Daily, Weekly, or Monthly. Works 24/7, even when your PC is off.</p>
+  <div class="status-bar">
+    <div class="stat">
+      <div class="stat-val" id="statTotal">0</div>
+      <div class="stat-label">Total Entries</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statPending">0</div>
+      <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statDone">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <!-- LEFT COLUMN -->
+  <div>
+    <!-- Entry Table -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-head">
+        <div class="card-title">📋 Follow-Up Entries</div>
+        <div class="flex gap-sm">
+          <button class="btn btn-outline" onclick="loadFromSheet()">⟳ Refresh</button>
+          <button class="btn btn-primary" onclick="openModal()">+ Add New</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="entryTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Due Date</th>
+              <th>Schedule</th>
+              <th>Attachment</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="8">
+                <div class="empty-state">
+                  <div class="icon">📭</div>
+                  <p>No entries yet. Add your first follow-up entry above.<br>Or connect your Google Sheet to load existing data.</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Google Apps Script Section -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">⚙️ Google Apps Script (Backend)</div>
+        <button class="btn btn-dark" onclick="copyScript()">📋 Copy Script</button>
+      </div>
+      <div class="card-body">
+        <p class="text-sm" style="margin-bottom:1rem; line-height:1.7">Paste this script into <strong>Google Sheets → Extensions → Apps Script</strong>. It runs on Google's servers 24/7 and sends emails with attachments automatically — even when your PC is off.</p>
+        <div class="script-tab-bar">
+          <button class="script-tab active" onclick="switchTab('main', this)">Code.gs</button>
+          <button class="script-tab" onclick="switchTab('setup', this)">Setup Guide</button>
+        </div>
+        <div id="tab-main">
+<div class="script-box" id="scriptContent">
+<span class="cmt">// ════════════════════════════════════════════════════════════════</span>
+<span class="cmt">// FollowUp Pro — Google Apps Script Backend</span>
+<span class="cmt">// Paste in: Google Sheets → Extensions → Apps Script</span>
+<span class="cmt">// ════════════════════════════════════════════════════════════════</span>
+
+<span class="cmt">// ── CONFIGURATION ──────────────────────────────────────────────</span>
+<span class="kw">const</span> CONFIG = {
+  SHEET_NAME:    <span class="str">"FollowUps"</span>,        <span class="cmt">// Your sheet tab name</span>
+  SENDER_NAME:   <span class="str">"Your Company Name"</span>, <span class="cmt">// Shown as sender</span>
+  REPLY_TO:      <span class="str">"you@email.com"</span>,    <span class="cmt">// Reply-to address</span>
+};
+
+<span class="cmt">// ── COLUMN MAPPING (1-indexed) ─────────────────────────────────</span>
+<span class="cmt">// A=1, B=2, C=3, D=4, E=5, F=6, G=7, H=8, I=9</span>
+<span class="kw">const</span> COL = {
+  NAME:          <span class="str">1</span>,  <span class="cmt">// A - Recipient Name</span>
+  EMAIL:         <span class="str">2</span>,  <span class="cmt">// B - Email Address</span>
+  SUBJECT:       <span class="str">3</span>,  <span class="cmt">// C - Email Subject</span>
+  MESSAGE:       <span class="str">4</span>,  <span class="cmt">// D - Email Body (custom per row)</span>
+  DUE_DATE:      <span class="str">5</span>,  <span class="cmt">// E - Due Date</span>
+  SCHEDULE:      <span class="str">6</span>,  <span class="cmt">// F - daily / weekly / monthly</span>
+  FILE_ID:       <span class="str">7</span>,  <span class="cmt">// G - Google Drive File ID of attachment</span>
+  STATUS:        <span class="str">8</span>,  <span class="cmt">// H - pending / done</span>
+  LAST_SENT:     <span class="str">9</span>,  <span class="cmt">// I - Last sent timestamp (auto-updated)</span>
+};
+
+<span class="cmt">// ── MAIN TRIGGER: Run this daily via Apps Script Trigger ───────</span>
+<span class="kw">function</span> <span class="fn">sendFollowUps</span>() {
+  <span class="kw">const</span> ss    = SpreadsheetApp.<span class="fn">getActiveSpreadsheet</span>();
+  <span class="kw">const</span> sheet = ss.<span class="fn">getSheetByName</span>(CONFIG.SHEET_NAME);
+  <span class="kw">if</span> (!sheet) { Logger.<span class="fn">log</span>(<span class="str">"Sheet not found: "</span> + CONFIG.SHEET_NAME); <span class="kw">return</span>; }
+
+  <span class="kw">const</span> lastRow = sheet.<span class="fn">getLastRow</span>();
+  <span class="kw">if</span> (lastRow &lt; 2) <span class="kw">return</span>; <span class="cmt">// No data rows</span>
+
+  <span class="kw">const</span> data     = sheet.<span class="fn">getRange</span>(2, 1, lastRow - 1, 9).<span class="fn">getValues</span>();
+  <span class="kw">const</span> today    = <span class="kw">new</span> Date();
+  today.<span class="fn">setHours</span>(0, 0, 0, 0);
+  <span class="kw">let</span> sentCount = 0;
+
+  data.<span class="fn">forEach</span>((row, i) => {
+    <span class="kw">const</span> rowNum   = i + 2;
+    <span class="kw">const</span> name     = row[COL.NAME - 1];
+    <span class="kw">const</span> email    = row[COL.EMAIL - 1];
+    <span class="kw">const</span> subject  = row[COL.SUBJECT - 1];
+    <span class="kw">const</span> message  = row[COL.MESSAGE - 1];
+    <span class="kw">const</span> schedule = (row[COL.SCHEDULE - 1] || <span class="str">""</span>).<span class="fn">toString</span>().<span class="fn">toLowerCase</span>().<span class="fn">trim</span>();
+    <span class="kw">const</span> fileId   = (row[COL.FILE_ID - 1] || <span class="str">""</span>).<span class="fn">toString</span>().<span class="fn">trim</span>();
+    <span class="kw">const</span> status   = (row[COL.STATUS - 1] || <span class="str">""</span>).<span class="fn">toString</span>().<span class="fn">toLowerCase</span>().<span class="fn">trim</span>();
+    <span class="kw">const</span> lastSent = row[COL.LAST_SENT - 1];
+
+    <span class="cmt">// Only process PENDING rows with valid email</span>
+    <span class="kw">if</span> (status !== <span class="str">"pending"</span> || !email) <span class="kw">return</span>;
+
+    <span class="kw">if</span> (<span class="fn">shouldSendToday</span>(schedule, lastSent, today)) {
+      <span class="kw">const</span> sent = <span class="fn">sendEmail</span>(name, email, subject, message, fileId);
+      <span class="kw">if</span> (sent) {
+        <span class="cmt">// Update Last Sent timestamp</span>
+        sheet.<span class="fn">getRange</span>(rowNum, COL.LAST_SENT).<span class="fn">setValue</span>(<span class="kw">new</span> Date());
+        sentCount++;
+        Logger.<span class="fn">log</span>(<span class="str">`✅ Sent to ${name} (${email}) — ${schedule}`</span>);
+      }
+    }
+  });
+
+  Logger.<span class="fn">log</span>(<span class="str">`Done. Sent ${sentCount} email(s).`</span>);
+}
+
+<span class="cmt">// ── SCHEDULE LOGIC ─────────────────────────────────────────────</span>
+<span class="kw">function</span> <span class="fn">shouldSendToday</span>(schedule, lastSent, today) {
+  <span class="kw">if</span> (!lastSent || lastSent === <span class="str">""</span>) <span class="kw">return true</span>; <span class="cmt">// Never sent → send now</span>
+
+  <span class="kw">const</span> last = <span class="kw">new</span> Date(lastSent);
+  last.<span class="fn">setHours</span>(0, 0, 0, 0);
+  <span class="kw">const</span> diffDays = Math.<span class="fn">floor</span>((today - last) / (1000 * 60 * 60 * 24));
+
+  <span class="kw">switch</span> (schedule) {
+    <span class="kw">case</span> <span class="str">"daily"</span>:   <span class="kw">return</span> diffDays >= 1;
+    <span class="kw">case</span> <span class="str">"weekly"</span>:  <span class="kw">return</span> diffDays >= 7;
+    <span class="kw">case</span> <span class="str">"monthly"</span>: <span class="kw">return</span> diffDays >= 30;
+    <span class="kw">default</span>:        <span class="kw">return false</span>;
+  }
+}
+
+<span class="cmt">// ── EMAIL SENDER WITH ATTACHMENT ───────────────────────────────</span>
+<span class="kw">function</span> <span class="fn">sendEmail</span>(name, email, subject, message, fileId) {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> htmlBody = <span class="fn">buildHtmlEmail</span>(name, message);
+    <span class="kw">const</span> options  = {
+      htmlBody:  htmlBody,
+      name:      CONFIG.SENDER_NAME,
+      replyTo:   CONFIG.REPLY_TO,
+    };
+
+    <span class="cmt">// Attach file from Google Drive (as actual attachment, not link)</span>
+    <span class="kw">if</span> (fileId) {
+      <span class="kw">try</span> {
+        <span class="kw">const</span> file = DriveApp.<span class="fn">getFileById</span>(fileId);
+        options.attachments = [file.<span class="fn">getBlob</span>()];
+        Logger.<span class="fn">log</span>(<span class="str">`📎 Attaching: ${file.getName()}`</span>);
+      } <span class="kw">catch</span>(e) {
+        Logger.<span class="fn">log</span>(<span class="str">`⚠️ Could not attach file ID ${fileId}: ${e}`</span>);
+      }
+    }
+
+    GmailApp.<span class="fn">sendEmail</span>(email, subject, message, options);
+    <span class="kw">return true</span>;
+  } <span class="kw">catch</span>(e) {
+    Logger.<span class="fn">log</span>(<span class="str">`❌ Failed to send to ${email}: ${e}`</span>);
+    <span class="kw">return false</span>;
+  }
+}
+
+<span class="cmt">// ── HTML EMAIL TEMPLATE ────────────────────────────────────────</span>
+<span class="kw">function</span> <span class="fn">buildHtmlEmail</span>(name, message) {
+  <span class="kw">return</span> <span class="str">`
+  &lt;div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"&gt;
+    &lt;div style="background:#0a0a0f;padding:20px 30px;border-radius:10px 10px 0 0"&gt;
+      &lt;h2 style="color:#e8461e;margin:0;font-size:1.4rem"&gt;Follow-Up Reminder&lt;/h2&gt;
+    &lt;/div&gt;
+    &lt;div style="background:#f5f3ee;padding:30px;border-radius:0 0 10px 10px"&gt;
+      &lt;p style="margin:0 0 16px"&gt;Dear &lt;strong&gt;${name}&lt;/strong&gt;,&lt;/p&gt;
+      &lt;div style="white-space:pre-line;line-height:1.7"&gt;${message}&lt;/div&gt;
+      &lt;p style="margin:20px 0 0;font-size:0.85em;color:#888"&gt;
+        Please find the attachment included with this email.
+        Reply to this email if you have any questions.
+      &lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;`</span>;
+}
+
+<span class="cmt">// ── SETUP: Create Trigger (run this ONCE manually) ─────────────</span>
+<span class="kw">function</span> <span class="fn">setupDailyTrigger</span>() {
+  <span class="cmt">// Delete existing triggers first</span>
+  ScriptApp.<span class="fn">getProjectTriggers</span>().<span class="fn">forEach</span>(t => ScriptApp.<span class="fn">deleteTrigger</span>(t));
+
+  <span class="cmt">// Create new daily trigger at 9:00 AM</span>
+  ScriptApp.<span class="fn">newTrigger</span>(<span class="str">"sendFollowUps"</span>)
+    .<span class="fn">timeBased</span>()
+    .<span class="fn">everyDays</span>(1)
+    .<span class="fn">atHour</span>(9)
+    .<span class="fn">create</span>();
+
+  Logger.<span class="fn">log</span>(<span class="str">"✅ Daily trigger set for 9:00 AM"</span>);
+}
+
+<span class="cmt">// ── SHEET SETUP: Create headers (run ONCE) ─────────────────────</span>
+<span class="kw">function</span> <span class="fn">setupSheet</span>() {
+  <span class="kw">const</span> ss = SpreadsheetApp.<span class="fn">getActiveSpreadsheet</span>();
+  <span class="kw">let</span> sheet = ss.<span class="fn">getSheetByName</span>(CONFIG.SHEET_NAME);
+  <span class="kw">if</span> (!sheet) sheet = ss.<span class="fn">insertSheet</span>(CONFIG.SHEET_NAME);
+
+  <span class="kw">const</span> headers = [
+    <span class="str">"Name"</span>, <span class="str">"Email"</span>, <span class="str">"Subject"</span>, <span class="str">"Message"</span>,
+    <span class="str">"Due Date"</span>, <span class="str">"Schedule"</span>, <span class="str">"Drive File ID"</span>,
+    <span class="str">"Status"</span>, <span class="str">"Last Sent"</span>
+  ];
+  sheet.<span class="fn">getRange</span>(1, 1, 1, headers.length).<span class="fn">setValues</span>([headers]);
+  sheet.<span class="fn">getRange</span>(1, 1, 1, headers.length)
+    .<span class="fn">setBackground</span>(<span class="str">"#0a0a0f"</span>)
+    .<span class="fn">setFontColor</span>(<span class="str">"#ffffff"</span>)
+    .<span class="fn">setFontWeight</span>(<span class="str">"bold"</span>);
+
+  Logger.<span class="fn">log</span>(<span class="str">"✅ Sheet headers created!"</span>);
+}
+</div>
+        </div>
+        <div id="tab-setup" style="display:none">
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-txt">
+                <strong>Open Google Sheets</strong>
+                Create a new Google Sheet. Go to <strong>Extensions → Apps Script</strong>.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-txt">
+                <strong>Paste the Script</strong>
+                Delete all existing code. Click "Copy Script" above and paste it. Click 💾 Save.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-txt">
+                <strong>Run setupSheet()</strong>
+                In Apps Script, select <code>setupSheet</code> from dropdown → click ▶ Run. This creates the column headers automatically.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-txt">
+                <strong>Upload Attachments to Google Drive</strong>
+                Upload each file to Google Drive. Right-click → <em>Get link</em> → copy the <strong>File ID</strong> from the URL (the long string after /d/).
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">5</div>
+              <div class="step-txt">
+                <strong>Share Drive Files with Script</strong>
+                Make sure each Drive file is set to <em>"Anyone with the link can view"</em> OR the script account has access.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">6</div>
+              <div class="step-txt">
+                <strong>Add Your Data</strong>
+                Fill in each row: Name, Email, Subject, Message, Due Date, <code>daily</code>/<code>weekly</code>/<code>monthly</code>, File ID, <code>pending</code>.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">7</div>
+              <div class="step-txt">
+                <strong>Set Up Auto-Trigger</strong>
+                Select <code>setupDailyTrigger</code> → click ▶ Run. Google will now run <code>sendFollowUps</code> every day at 9 AM automatically — even when your PC is off!
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">8</div>
+              <div class="step-txt">
+                <strong>Authorize & Done</strong>
+                First run will ask for Gmail + Drive permissions. Accept them. Your auto email system is live! ✅
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="sidebar">
+    <!-- Sheet Config -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">🔗 Sheet Connection</div></div>
+      <div class="card-body">
+        <div>
+          <label>Google Sheet Web App URL</label>
+          <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/..." />
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:0.5rem; line-height:1.5">
+            After deploying as Web App in Apps Script, paste the URL here to connect this page.
+          </div>
+        </div>
+        <button class="btn btn-dark mt" style="width:100%" onclick="loadFromSheet()">Connect & Load Data</button>
+      </div>
+    </div>
+
+    <!-- Schedule Legend -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">📅 Schedule Options</div></div>
+      <div class="card-body" style="padding:0.8rem 1.5rem">
+        <div class="config-row">
+          <div>
+            <div class="config-label"><span class="badge badge-daily">daily</span></div>
+            <div class="config-sub">Email sent every 24 hours while pending</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div>
+            <div class="config-label"><span class="badge badge-weekly">weekly</span></div>
+            <div class="config-sub">Email sent every 7 days while pending</div>
+          </div>
+        </div>
+        <div class="config-row">
+          <div>
+            <div class="config-label"><span class="badge badge-monthly">monthly</span></div>
+            <div class="config-sub">Email sent every 30 days while pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sheet Structure -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">📊 Sheet Columns</div></div>
+      <div class="card-body" style="padding:0">
+        <table style="width:100%">
+          <tr><th>Col</th><th>Name</th><th>Example</th></tr>
+          <tr><td>A</td><td>Name</td><td style="font-size:0.72rem;color:var(--muted)">John Smith</td></tr>
+          <tr><td>B</td><td>Email</td><td style="font-size:0.72rem;color:var(--muted)">john@co.com</td></tr>
+          <tr><td>C</td><td>Subject</td><td style="font-size:0.72rem;color:var(--muted)">Invoice #123</td></tr>
+          <tr><td>D</td><td>Message</td><td style="font-size:0.72rem;color:var(--muted)">Please find...</td></tr>
+          <tr><td>E</td><td>Due Date</td><td style="font-size:0.72rem;color:var(--muted)">2024-03-15</td></tr>
+          <tr><td>F</td><td>Schedule</td><td style="font-size:0.72rem;color:var(--muted)">weekly</td></tr>
+          <tr><td>G</td><td>Drive File ID</td><td style="font-size:0.72rem;color:var(--muted)">1BxiMVs0X...</td></tr>
+          <tr><td>H</td><td>Status</td><td style="font-size:0.72rem;color:var(--muted)">pending / done</td></tr>
+          <tr><td>I</td><td>Last Sent</td><td style="font-size:0.72rem;color:var(--muted)">(auto-filled)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- How to get File ID -->
+    <div class="card">
+      <div class="card-head"><div class="card-title">📎 How to Get Drive File ID</div></div>
+      <div class="card-body">
+        <ol style="font-size:0.78rem; line-height:2; padding-left:1.2rem; color:var(--ink)">
+          <li>Upload file to Google Drive</li>
+          <li>Right-click → <em>Get link</em></li>
+          <li>Copy URL. The File ID is the part after <code style="background:var(--paper);padding:1px 5px;border-radius:3px">/d/</code> and before the next <code style="background:var(--paper);padding:1px 5px;border-radius:3px">/</code></li>
+        </ol>
+        <div style="background:#f1f5f9; border-radius:8px; padding:0.8rem; margin-top:0.8rem; font-size:0.68rem; word-break:break-all; color:#475569; line-height:1.7">
+          drive.google.com/file/d/<strong style="color:var(--accent)">1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74</strong>/view
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ADD ENTRY MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-title">+ New Follow-Up Entry</div>
+    <div class="form-grid">
+      <div>
+        <label>Recipient Name *</label>
+        <input type="text" id="fName" placeholder="John Smith" />
+      </div>
+      <div>
+        <label>Email Address *</label>
+        <input type="email" id="fEmail" placeholder="john@company.com" />
+      </div>
+      <div class="form-full">
+        <label>Email Subject *</label>
+        <input type="text" id="fSubject" placeholder="Invoice #123 — Payment Follow-Up" />
+      </div>
+      <div class="form-full">
+        <label>Email Body (custom per entry)</label>
+        <textarea id="fMessage" placeholder="Dear [Name],&#10;&#10;This is a follow-up regarding...&#10;&#10;Please review the attached document.&#10;&#10;Best regards"></textarea>
+      </div>
+      <div>
+        <label>Due Date</label>
+        <input type="date" id="fDate" />
+      </div>
+      <div>
+        <label>Follow-Up Schedule *</label>
+        <select id="fSchedule">
+          <option value="daily">Daily</option>
+          <option value="weekly" selected>Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="fStatus">
+          <option value="pending" selected>Pending</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div>
+        <label>Google Drive File ID</label>
+        <input type="text" id="fFileId" placeholder="1BxiMVs0X..." />
+      </div>
+      <div class="form-full">
+        <label>Preview Attachment Name (optional display)</label>
+        <div class="file-drop" id="fileDrop">
+          <input type="file" id="fFile" onchange="handleFile(this)" />
+          <div class="file-drop-label">
+            <div style="font-size:1.5rem;margin-bottom:0.4rem">📎</div>
+            <strong>Click or drag</strong> to show filename preview<br>
+            <span style="font-size:0.68rem">(Actual file must be uploaded to Google Drive)</span>
+          </div>
+          <div class="file-name" id="fileName"></div>
+        </div>
+      </div>
+    </div>
+    <div class="flex mt" style="justify-content:flex-end; gap:0.8rem">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addEntry()">Add Entry →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── DATA STORE ─────────────────────────────────────────────────
+let entries = JSON.parse(localStorage.getItem('followup_entries') || '[]');
+
+// ── RENDER TABLE ───────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  updateStats();
+
+  if (!entries.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>No entries yet. Click <strong>+ Add New</strong> to get started.</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = entries.map((e, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:0.72rem">${i+1}</td>
+      <td><strong>${e.name}</strong></td>
+      <td style="color:var(--accent2)">${e.email}</td>
+      <td style="font-size:0.78rem">${e.date || '—'}</td>
+      <td><span class="badge badge-${e.schedule}">${e.schedule}</span></td>
+      <td>${e.fileId ? `<span class="attach-chip">📎 ${e.fileName || e.fileId.slice(0,12)+'...'}</span>` : '<span style="color:var(--muted);font-size:0.72rem">—</span>'}</td>
+      <td><span class="badge badge-${e.status}">${e.status}</span></td>
+      <td>
+        <div class="flex gap-sm">
+          ${e.status==='pending' ? `<button class="btn btn-outline" style="padding:4px 8px;font-size:0.68rem" onclick="markDone(${i})">✓ Done</button>` : ''}
+          <button class="btn btn-danger" style="padding:4px 8px;font-size:0.68rem" onclick="deleteEntry(${i})">✕</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateStats() {
+  const pending = entries.filter(e => e.status === 'pending').length;
+  document.getElementById('statTotal').textContent = entries.length;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statDone').textContent = entries.length - pending;
+}
+
+// ── MODAL ──────────────────────────────────────────────────────
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+function handleFile(input) {
+  const name = input.files[0]?.name || '';
+  document.getElementById('fileName').textContent = name ? `📎 ${name}` : '';
+}
+
+// ── ADD ENTRY ──────────────────────────────────────────────────
+function addEntry() {
+  const name     = document.getElementById('fName').value.trim();
+  const email    = document.getElementById('fEmail').value.trim();
+  const subject  = document.getElementById('fSubject').value.trim();
+  const message  = document.getElementById('fMessage').value.trim();
+  const date     = document.getElementById('fDate').value;
+  const schedule = document.getElementById('fSchedule').value;
+  const status   = document.getElementById('fStatus').value;
+  const fileId   = document.getElementById('fFileId').value.trim();
+  const fileInput = document.getElementById('fFile');
+  const fileName = fileInput.files[0]?.name || '';
+
+  if (!name || !email || !subject) { showToast('⚠️ Name, Email and Subject are required'); return; }
+
+  entries.push({ name, email, subject, message, date, schedule, status, fileId, fileName });
+  localStorage.setItem('followup_entries', JSON.stringify(entries));
+  renderTable();
+  closeModal();
+  clearForm();
+  showToast('✅ Entry added! Remember to add this row to your Google Sheet.');
+}
+
+function clearForm() {
+  ['fName','fEmail','fSubject','fMessage','fDate','fFileId'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fSchedule').value = 'weekly';
+  document.getElementById('fStatus').value = 'pending';
+  document.getElementById('fileName').textContent = '';
+  document.getElementById('fFile').value = '';
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────
+function markDone(i) {
+  entries[i].status = 'done';
+  localStorage.setItem('followup_entries', JSON.stringify(entries));
+  renderTable();
+  showToast('✅ Marked as Done. Update status to "done" in your Google Sheet too.');
+}
+
+function deleteEntry(i) {
+  if (!confirm(`Delete entry for ${entries[i].name}?`)) return;
+  entries.splice(i, 1);
+  localStorage.setItem('followup_entries', JSON.stringify(entries));
+  renderTable();
+  showToast('🗑️ Entry removed');
+}
+
+// ── SHEET LOAD (optional via Web App URL) ─────────────────────
+async function loadFromSheet() {
+  const url = document.getElementById('sheetUrl').value.trim();
+  if (!url) { showToast('ℹ️ Enter your Apps Script Web App URL first'); return; }
+  showToast('⟳ Connecting to Google Sheet...');
+  try {
+    const res = await fetch(url + '?action=get');
+    const data = await res.json();
+    if (data.rows) {
+      entries = data.rows;
+      localStorage.setItem('followup_entries', JSON.stringify(entries));
+      renderTable();
+      showToast(`✅ Loaded ${entries.length} entries from Sheet`);
+    }
+  } catch(e) {
+    showToast('⚠️ Could not connect. Make sure the Web App is deployed and CORS is allowed.');
+  }
+}
+
+// ── SCRIPT COPY ───────────────────────────────────────────────
+function copyScript() {
+  const raw = `// FollowUp Pro — Google Apps Script Backend
+const CONFIG = {
+  SHEET_NAME:    "FollowUps",
+  SENDER_NAME:   "Your Company Name",
+  REPLY_TO:      "you@email.com",
+};
+
+const COL = { NAME:1, EMAIL:2, SUBJECT:3, MESSAGE:4, DUE_DATE:5, SCHEDULE:6, FILE_ID:7, STATUS:8, LAST_SENT:9 };
+
+function sendFollowUps() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+  if (!sheet) { Logger.log("Sheet not found: " + CONFIG.SHEET_NAME); return; }
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+  const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+  const today = new Date(); today.setHours(0,0,0,0);
+  let sentCount = 0;
+
+  data.forEach((row, i) => {
+    const rowNum = i + 2;
+    const name = row[COL.NAME-1], email = row[COL.EMAIL-1], subject = row[COL.SUBJECT-1];
+    const message = row[COL.MESSAGE-1];
+    const schedule = (row[COL.SCHEDULE-1]||"").toString().toLowerCase().trim();
+    const fileId = (row[COL.FILE_ID-1]||"").toString().trim();
+    const status = (row[COL.STATUS-1]||"").toString().toLowerCase().trim();
+    const lastSent = row[COL.LAST_SENT-1];
+
+    if (status !== "pending" || !email) return;
+
+    if (shouldSendToday(schedule, lastSent, today)) {
+      const sent = sendEmail(name, email, subject, message, fileId);
+      if (sent) { sheet.getRange(rowNum, COL.LAST_SENT).setValue(new Date()); sentCount++; }
+    }
+  });
+  Logger.log("Done. Sent " + sentCount + " email(s).");
+}
+
+function shouldSendToday(schedule, lastSent, today) {
+  if (!lastSent || lastSent === "") return true;
+  const last = new Date(lastSent); last.setHours(0,0,0,0);
+  const diffDays = Math.floor((today - last) / (1000*60*60*24));
+  switch(schedule) {
+    case "daily":   return diffDays >= 1;
+    case "weekly":  return diffDays >= 7;
+    case "monthly": return diffDays >= 30;
+    default: return false;
+  }
+}
+
+function sendEmail(name, email, subject, message, fileId) {
+  try {
+    const htmlBody = buildHtmlEmail(name, message);
+    const options = { htmlBody, name: CONFIG.SENDER_NAME, replyTo: CONFIG.REPLY_TO };
+    if (fileId) {
+      try {
+        const file = DriveApp.getFileById(fileId);
+        options.attachments = [file.getBlob()];
+      } catch(e) { Logger.log("Could not attach file: " + e); }
+    }
+    GmailApp.sendEmail(email, subject, message, options);
+    return true;
+  } catch(e) { Logger.log("Failed: " + e); return false; }
+}
+
+function buildHtmlEmail(name, message) {
+  return '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><div style="background:#0a0a0f;padding:20px 30px;border-radius:10px 10px 0 0"><h2 style="color:#e8461e;margin:0">Follow-Up Reminder</h2></div><div style="background:#f5f3ee;padding:30px;border-radius:0 0 10px 10px"><p style="margin:0 0 16px">Dear <strong>'+name+'</strong>,</p><div style="white-space:pre-line;line-height:1.7">'+message+'</div><p style="margin:20px 0 0;font-size:0.85em;color:#888">Please find the attachment included with this email.</p></div></div>';
+}
+
+function setupDailyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger("sendFollowUps").timeBased().everyDays(1).atHour(9).create();
+  Logger.log("Daily trigger set for 9:00 AM");
+}
+
+function setupSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(CONFIG.SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(CONFIG.SHEET_NAME);
+  const headers = ["Name","Email","Subject","Message","Due Date","Schedule","Drive File ID","Status","Last Sent"];
+  sheet.getRange(1,1,1,headers.length).setValues([headers]);
+  sheet.getRange(1,1,1,headers.length).setBackground("#0a0a0f").setFontColor("#ffffff").setFontWeight("bold");
+  Logger.log("Sheet headers created!");
+}`;
+
+  navigator.clipboard.writeText(raw).then(() => showToast('📋 Script copied! Paste into Google Apps Script.'));
+}
+
+// ── TABS ───────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.getElementById('tab-main').style.display  = tab==='main'  ? '' : 'none';
+  document.getElementById('tab-setup').style.display = tab==='setup' ? '' : 'none';
+  document.querySelectorAll('.script-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── TOAST ──────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ── DRAG & DROP ────────────────────────────────────────────────
+const drop = document.getElementById('fileDrop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) document.getElementById('fileName').textContent = `📎 ${file.name}`;
+});
+
+// ── INIT ───────────────────────────────────────────────────────
+renderTable();
+</script>
+</body>
+</html>
