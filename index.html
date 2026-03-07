@@ -864,6 +864,7 @@
                 <th>Email</th>
                 <th>Due Date</th>
                 <th>Schedule</th>
+                <th>Reminder</th>
                 <th>Attachment</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -871,7 +872,7 @@
             </thead>
             <tbody id="tableBody">
               <tr>
-                <td colspan="8">
+                <td colspan="9">
                   <div class="empty-state">
                     <div class="icon">📭</div>
                     <p>No entries yet. Add your first follow-up entry above.<br>Or connect your Google Sheet to load
@@ -991,6 +992,16 @@
               <td>Last Sent</td>
               <td style="font-size:0.72rem;color:var(--muted)">(auto-filled)</td>
             </tr>
+            <tr>
+              <td>J</td>
+              <td>CC</td>
+              <td style="font-size:0.72rem;color:var(--muted)">a@b.com, c@d.com</td>
+            </tr>
+            <tr>
+              <td>K</td>
+              <td>Reminder #</td>
+              <td style="font-size:0.72rem;color:var(--muted)">(auto-filled)</td>
+            </tr>
           </table>
         </div>
       </div>
@@ -1030,6 +1041,10 @@
         <div>
           <label>Email Address *</label>
           <input type="email" id="fEmail" placeholder="john@company.com" />
+        </div>
+        <div class="form-full">
+          <label>CC (optional — comma separated emails)</label>
+          <input type="text" id="fCc" placeholder="manager@company.com, accounts@company.com" />
         </div>
         <div class="form-full">
           <label>Email Subject *</label>
@@ -1119,6 +1134,10 @@
           <input type="email" id="eEmail" />
         </div>
         <div class="form-full">
+          <label>CC (optional — comma separated emails)</label>
+          <input type="text" id="eCc" placeholder="manager@company.com, accounts@company.com" />
+        </div>
+        <div class="form-full">
           <label>Email Subject *</label>
           <input type="text" id="eSubject" />
         </div>
@@ -1196,23 +1215,40 @@
       }
     }
 
+    // ── FORMAT DATE ─────────────────────────────────────────────────
+    function formatDate(raw) {
+      if (!raw) return '—';
+      const d = new Date(raw);
+      if (isNaN(d)) return raw;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = d.toLocaleString('en-GB', { month: 'short' }); // Jan Feb Mar...
+      const year = d.getFullYear();
+      return `${day} ${month} ${year}`;
+    }
+
     // ── RENDER TABLE ───────────────────────────────────────────────
     function renderTable() {
       const tbody = document.getElementById('tableBody');
       updateStats();
 
       if (!entries.length) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>No entries yet. Connect your Sheet URL then click <strong>+ Add New</strong>.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="icon">📭</div><p>No entries yet. Connect your Sheet URL then click <strong>+ Add New</strong>.</p></div></td></tr>`;
         return;
       }
 
-      tbody.innerHTML = entries.map((e, i) => `
+      tbody.innerHTML = entries.map((e, i) => {
+        const reminderNum = e.reminderCount ? parseInt(e.reminderCount) : 0;
+        const reminderBadge = reminderNum > 0
+          ? `<span style="display:inline-block;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:12px;padding:2px 9px;font-size:0.68rem;font-weight:700;letter-spacing:0.04em">Reminder ${reminderNum}</span>`
+          : `<span style="color:var(--muted);font-size:0.72rem">—</span>`;
+        return `
     <tr>
       <td style="color:var(--muted);font-size:0.72rem">${i + 1}</td>
       <td><strong>${e.name}</strong></td>
       <td style="color:var(--accent2)">${e.email}</td>
-      <td style="font-size:0.78rem">${e.date || '—'}</td>
+      <td style="font-size:0.78rem">${formatDate(e.date)}</td>
       <td><span class="badge badge-${e.schedule}">${e.schedule}</span></td>
+      <td>${reminderBadge}</td>
       <td>${e.fileId ? `<span class="attach-chip">📎 ${e.fileId.slice(0, 14)}...</span>` : '<span style="color:var(--muted);font-size:0.72rem">—</span>'}</td>
       <td><span class="badge badge-${e.status}">${e.status}</span></td>
       <td>
@@ -1225,7 +1261,8 @@
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+      }).join('');
     }
 
     function updateStats() {
@@ -1249,6 +1286,7 @@
     async function addEntry() {
       const name = document.getElementById('fName').value.trim();
       const email = document.getElementById('fEmail').value.trim();
+      const cc = document.getElementById('fCc').value.trim();
       const subject = document.getElementById('fSubject').value.trim();
       const message = document.getElementById('fMessage').value.trim();
       const date = document.getElementById('fDate').value;
@@ -1263,7 +1301,7 @@
 
       const result = await postToSheet({
         action: 'add',
-        data: { name, email, subject, message, date, schedule, fileId, status }
+        data: { name, email, cc, subject, message, date, schedule, fileId, status }
       });
 
       if (result && result.success) {
@@ -1277,7 +1315,7 @@
     }
 
     function clearForm() {
-      ['fName', 'fEmail', 'fSubject', 'fMessage', 'fDate', 'fFileId'].forEach(id => document.getElementById(id).value = '');
+      ['fName', 'fEmail', 'fCc', 'fSubject', 'fMessage', 'fDate', 'fFileId'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('fSchedule').value = 'weekly';
       document.getElementById('fStatus').value = 'pending';
       document.getElementById('fileName').textContent = '';
@@ -1336,6 +1374,10 @@
           <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px">Email</div>
           <div style="color:var(--accent2)">${e.email}</div>
         </div>
+        ${e.cc ? `<div style="grid-column:1/-1">
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px">CC</div>
+          <div style="font-size:0.85rem;color:var(--muted)">${e.cc}</div>
+        </div>` : ''}
         <div>
           <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px">Schedule</div>
           <span class="badge badge-${e.schedule}">${e.schedule}</span>
@@ -1346,7 +1388,7 @@
         </div>
         <div>
           <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px">Due Date</div>
-          <div>${e.date || '—'}</div>
+          <div>${formatDate(e.date)}</div>
         </div>
         <div>
           <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px">Last Sent</div>
@@ -1361,6 +1403,7 @@
 
       <div>
         <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:6px">Email Message</div>
+        ${(e.reminderCount && parseInt(e.reminderCount) > 0) ? `<div style="color:#dc2626;font-weight:700;font-size:1.7rem;margin-bottom:0.5rem;line-height:1">Reminder ${e.reminderCount}</div>` : ''}
         <div style="background:var(--paper);border:1px solid var(--border);border-radius:8px;padding:1rem;font-size:0.85rem;line-height:1.8;white-space:pre-wrap;min-height:80px">${e.message || '(no message)'}</div>
       </div>
 
@@ -1393,6 +1436,7 @@
       document.getElementById('editRowIndex').value = i;
       document.getElementById('eName').value = e.name || '';
       document.getElementById('eEmail').value = e.email || '';
+      document.getElementById('eCc').value = e.cc || '';
       document.getElementById('eSubject').value = e.subject || '';
       document.getElementById('eMessage').value = e.message || '';
       document.getElementById('eDate').value = e.date || '';
@@ -1415,6 +1459,7 @@
       const rowIndex = entries[i].rowIndex;
       const name = document.getElementById('eName').value.trim();
       const email = document.getElementById('eEmail').value.trim();
+      const cc = document.getElementById('eCc').value.trim();
       const subject = document.getElementById('eSubject').value.trim();
       const message = document.getElementById('eMessage').value.trim();
       const date = document.getElementById('eDate').value;
@@ -1430,7 +1475,7 @@
       const result = await postToSheet({
         action: 'edit',
         rowIndex,
-        data: { name, email, subject, message, date, schedule, fileId, status }
+        data: { name, email, cc, subject, message, date, schedule, fileId, status }
       });
 
       if (result && result.success) {
